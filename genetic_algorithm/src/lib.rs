@@ -1,4 +1,4 @@
-mod multifactor;
+pub mod multifactor;
 
 /// Represents chromosome in Genetic Algorithms with basic operators
 pub trait Chromosome<CrossType = Self> {
@@ -26,4 +26,14 @@ pub trait GeneticProcessor<ChromosomeType: Chromosome> {
 
     fn population(&self) -> &Vec<ChromosomeType>;
     fn take_population(self) -> Vec<ChromosomeType>;
+}
+
+pub trait GeneticFactory<
+    'fact,
+    ChromosomeType: 'fact + Chromosome,
+    ProcessorType: 'fact + GeneticProcessor<ChromosomeType>,
+>
+{
+    fn new_chromosome(&'fact self) -> ChromosomeType;
+    fn new_processor(&'fact self) -> ProcessorType;
 }

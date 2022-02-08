@@ -1,6 +1,7 @@
 use super::chromosome::VectorChromosome;
 use crate::FitnessEvaluater;
 
+#[derive(Clone)]
 pub struct VectorFitnessEvaluater {
     fitness_func: fn(&Vec<f64>) -> f64,
 }

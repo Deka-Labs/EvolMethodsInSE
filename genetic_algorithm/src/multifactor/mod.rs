@@ -1,9 +1,14 @@
-use self::evaluater::VectorFitnessEvaluater;
-
 mod chromosome;
 mod evaluater;
+mod factory;
 mod processor;
 
+pub use chromosome::VectorChromosome;
+pub use evaluater::VectorFitnessEvaluater;
+pub use factory::VectorGeneticFactory;
+pub use processor::VectorGeneticProcessor;
+
+#[derive(Clone)]
 pub struct GeneticParameters {
     /// Fitness function
     pub fitness_evaluater: VectorFitnessEvaluater,
@@ -17,6 +22,11 @@ pub struct GeneticParameters {
 
     /// Mutation chance
     pub mutation_chance: f64,
+
+    /// Min values
+    pub min: Vec<f64>,
+    /// Max values
+    pub max: Vec<f64>,
 }
 
 impl GeneticParameters {
@@ -27,6 +37,9 @@ impl GeneticParameters {
             cross_allow_radius: 0.25,
             max_cross_choices: 5,
             mutation_chance: 0.2,
+
+            min: vec![-6.0, -6.0],
+            max: vec![6.0, 6.0],
         }
     }
 }

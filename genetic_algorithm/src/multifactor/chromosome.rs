@@ -1,13 +1,13 @@
 use crate::Chromosome;
 use rand::{distributions::Uniform, prelude::*};
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VectorChromosome<'ranges> {
     pub point: Vec<f64>,
-    rand: ThreadRng,
+    pub(super) rand: ThreadRng,
 
-    min: &'ranges Vec<f64>,
-    max: &'ranges Vec<f64>,
+    pub(super) min: &'ranges Vec<f64>,
+    pub(super) max: &'ranges Vec<f64>,
 }
 
 impl VectorChromosome<'_> {

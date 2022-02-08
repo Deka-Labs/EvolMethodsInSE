@@ -71,7 +71,7 @@ impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'
         let mut new_population = Vec::new();
         new_population.reserve(2 * population.len());
 
-        while population.len() != 1 {
+        while population.len() > 1 {
             let first_element = population.swap_remove(0);
             // Taking chromosomes in radius search_radius
             let mut chrs_in_radius = Vec::new();
