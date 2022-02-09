@@ -32,6 +32,7 @@ impl<'fact> GeneticFactory<'fact, VectorChromosome<'fact>, VectorGeneticProcesso
             min: &self.p.min,
             point: point,
             rand: thread_rng(),
+            fitness: &self.p.fitness_evaluater,
         }
     }
 

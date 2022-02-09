@@ -1,5 +1,5 @@
 use rand::prelude::*;
-use rand_distr::Exp;
+use rand_distr::WeightedAliasIndex;
 
 use crate::{Chromosome, FitnessEvaluater, GeneticProcessor};
 
@@ -41,19 +41,28 @@ impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'
         let fe = &self.parameters.fitness_evaluater;
         population.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
 
-        // Will select by using Exponential distribution
-        // Mean will be index of center element
-        let lambda = 1.0 / (self.population_size / 2) as f64;
-        let distr = Exp::new(lambda).unwrap();
+        // Ranging probs calculate
+        let mut weights = Vec::new();
+        weights.reserve(population.len());
+        let a = self.parameters.rang_value;
+        let b = 2.0 - a;
+        let n = population.len() as f64;
+        for i in 0..population.len() {
+            let pos = i as f64;
+            weights.push((1.0 / n) * (a - (a - b) * pos / (n - 1.0)));
+        }
 
         let mut new_population = Vec::new();
         new_population.reserve(self.population_size);
 
         for _ in 0..self.population_size {
-            let mut index = distr.sample(&mut self.rand).floor() as usize;
-            index = index.clamp(0, self.population_size - 1);
+            let distr = WeightedAliasIndex::new(weights.clone()).unwrap();
+            let index = distr.sample(&mut self.rand);
 
-            new_population.push(population[index].clone());
+            let ch = population.remove(index);
+            let _ = weights.remove(index);
+
+            new_population.push(ch);
         }
 
         Self {
@@ -134,10 +143,6 @@ impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'
             rand: self.rand,
             parameters: self.parameters,
         }
-    }
-
-    fn reduce(self) -> Self {
-        self.populate()
     }
 
     fn population(&self) -> &Vec<VectorChromosome<'pop>> {

@@ -14,15 +14,13 @@ pub struct VectorChromosome<'ranges> {
 }
 
 impl VectorChromosome<'_> {
-    pub(crate) fn distance(&self, other: &Self) -> f64 {
+    pub fn distance(&self, other: &Self) -> f64 {
         assert_eq!(self.point.len(), other.point.len());
 
         let mut sum = 0.0;
         for i in 0..self.point.len() {
             sum += (self.point[i] - other.point[i]).powi(2);
         }
-
-        sum += (self.fitness() - other.fitness()).powi(2);
 
         sum.sqrt()
     }
@@ -59,7 +57,6 @@ impl<'ranges> Chromosome for VectorChromosome<'ranges> {
 
     fn mutate(self) -> Self {
         let mut mutated = self;
-
         for i in 0..mutated.point.len() {
             let min = mutated.min[i];
             let max = mutated.max[i];

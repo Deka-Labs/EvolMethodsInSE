@@ -22,7 +22,6 @@ pub trait GeneticProcessor<ChromosomeType: Chromosome> {
     fn populate(self) -> Self;
     fn cross(self) -> Self;
     fn mutate(self) -> Self;
-    fn reduce(self) -> Self;
 
     fn population(&self) -> &Vec<ChromosomeType>;
     fn take_population(self) -> Vec<ChromosomeType>;

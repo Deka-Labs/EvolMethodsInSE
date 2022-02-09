@@ -27,6 +27,10 @@ pub struct GeneticParameters {
     pub min: Vec<f64>,
     /// Max values
     pub max: Vec<f64>,
+
+    /// Ranging value
+    /// rang_value in [1, 2]
+    pub rang_value: f64,
 }
 
 impl GeneticParameters {
@@ -37,6 +41,7 @@ impl GeneticParameters {
             cross_allow_radius: 0.25,
             max_cross_choices: 5,
             mutation_chance: 0.2,
+            rang_value: 1.5,
 
             min: vec![-6.0, -6.0],
             max: vec![6.0, 6.0],
