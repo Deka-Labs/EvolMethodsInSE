@@ -39,7 +39,7 @@ impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'
         // Sort population
         let mut population = self.population.unwrap();
         let fe = &self.parameters.fitness_evaluater;
-        population.sort_unstable_by(|l, r| fe.fitness(l).partial_cmp(&fe.fitness(r)).unwrap());
+        population.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
 
         // Will select by using Exponential distribution
         // Mean will be index of center element
