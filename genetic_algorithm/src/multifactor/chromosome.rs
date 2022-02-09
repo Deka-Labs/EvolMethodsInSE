@@ -1,5 +1,6 @@
 use crate::{Chromosome, FitnessEvaluater};
 use rand::{distributions::Uniform, prelude::*};
+use rand_distr::Normal;
 
 use super::VectorFitnessEvaluater;
 
@@ -57,13 +58,29 @@ impl<'ranges> Chromosome for VectorChromosome<'ranges> {
 
     fn mutate(self) -> Self {
         let mut mutated = self;
-        for i in 0..mutated.point.len() {
-            let min = mutated.min[i];
-            let max = mutated.max[i];
 
-            let distr = Uniform::new(min, max);
+        if mutated.rand.gen_bool(0.5) {
+            // Full random mutation
+            for i in 0..mutated.point.len() {
+                let min = mutated.min[i];
+                let max = mutated.max[i];
 
-            mutated.point[i] = distr.sample(&mut mutated.rand);
+                let distr = Uniform::new(min, max);
+
+                mutated.point[i] = distr.sample(&mut mutated.rand);
+            }
+        } else {
+            // Normal distribution mutation
+            for i in 0..mutated.point.len() {
+                let min = mutated.min[i];
+                let max = mutated.max[i];
+
+                let range = max - min;
+
+                let distr = Normal::new(0.0, range / 100.0 / 3.0).unwrap();
+
+                mutated.point[i] += distr.sample(&mut mutated.rand);
+            }
         }
 
         mutated
