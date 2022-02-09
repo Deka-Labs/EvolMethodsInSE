@@ -1,13 +1,16 @@
-use crate::Chromosome;
+use crate::{Chromosome, FitnessEvaluater};
 use rand::{distributions::Uniform, prelude::*};
 
-#[derive(Clone, Debug)]
+use super::VectorFitnessEvaluater;
+
+#[derive(Clone)]
 pub struct VectorChromosome<'ranges> {
     pub point: Vec<f64>,
     pub(super) rand: ThreadRng,
 
     pub(super) min: &'ranges Vec<f64>,
     pub(super) max: &'ranges Vec<f64>,
+    pub(super) fitness: &'ranges VectorFitnessEvaluater,
 }
 
 impl VectorChromosome<'_> {
@@ -19,7 +22,13 @@ impl VectorChromosome<'_> {
             sum += (self.point[i] - other.point[i]).powi(2);
         }
 
+        sum += (self.fitness() - other.fitness()).powi(2);
+
         sum.sqrt()
+    }
+
+    pub fn fitness(&self) -> f64 {
+        self.fitness.fitness(self)
     }
 }
 
