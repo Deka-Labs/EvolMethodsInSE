@@ -1,4 +1,4 @@
-use std::{fs::File, io::Write};
+use std::{fs::File, io::Write, sync::mpsc::channel, thread};
 
 use clap::Parser;
 use genetic_algorithm::{
@@ -8,7 +8,7 @@ use genetic_algorithm::{
     FitnessEvaluater, GeneticFactory, GeneticProcessor,
 };
 
-#[derive(Parser)]
+#[derive(Parser, Clone)]
 #[clap(name = "LR1")]
 pub struct CLIParameters {
     /// Radius for searching
@@ -44,11 +44,42 @@ pub struct CLIParameters {
     /// A distance tolerance for displaying best in population
     #[clap(long, default_value = "3")]
     pub range: f64,
+
+    /// Count of trials to calc avg error
+    #[clap(long, default_value = "20")]
+    pub error_evaluate_trials: usize,
 }
 
 fn main() {
     let cli = CLIParameters::parse();
 
+    println!("First run to create population dump...");
+    population_dump_run(&cli, &cli.population_dump);
+
+    println!("Evaluating error...");
+    let optimal_points = vec![
+        vec![3.0, 2.0],
+        vec![-2.805118, 3.131312],
+        vec![-3.779310, -3.283186],
+        vec![3.584428, -1.84812],
+    ];
+
+    let res = avg_error_evalualte(&cli, &optimal_points);
+    let full_err: f64 = res.iter().sum::<f64>() / res.len() as f64;
+
+    println!("Avg error for all points: {}", full_err);
+    println!("Average errors: ");
+    for i in 0..optimal_points.len() {
+        println!("    Point: [{:?}] -- {}", optimal_points[i], res[i]);
+    }
+}
+
+/// Run genetic algorithm
+/// Returns vector of (point, fitness)
+fn ga_run<IterF>(cli: &CLIParameters, mut iter_func: IterF) -> Vec<(Vec<f64>, f64)>
+where
+    for<'inter> IterF: FnMut(usize, &Vec<VectorChromosome>),
+{
     let fitness_func: fn(&Vec<f64>) -> f64 =
         |v| (2500.0 - (v[0].powi(2) + v[1] - 11.0).powi(2) - (v[0] + v[1].powi(2) - 7.0).powi(2));
     let fe = VectorFitnessEvaluater::new(fitness_func);
@@ -66,8 +97,6 @@ fn main() {
         max: vec![6.0, 6.0],
     };
 
-    let mut population_file = File::create(cli.population_dump).unwrap();
-
     let factory = VectorGeneticFactory::new(genetic_parameters);
 
     let mut population = Vec::new();
@@ -78,17 +107,18 @@ fn main() {
     let mut processor = factory.new_processor();
     processor = processor.init_population(population);
     for i in 0..cli.iteration_count {
-        println!("Iteration is {}", i);
-        let tmp_pop = processor.population();
-        dump_population_to_file(i, &mut population_file, tmp_pop);
+        processor = processor.populate();
 
-        processor = processor.populate().cross().mutate();
+        let tmp_pop = processor.population();
+        iter_func(i, tmp_pop);
+
+        processor = processor.cross().mutate();
     }
 
     processor = processor.populate(); // Reduce population
 
     let mut pop = processor.take_population();
-    dump_population_to_file(cli.iteration_count, &mut population_file, &pop);
+    iter_func(cli.iteration_count, &pop);
 
     // Take only points placed at least cli.range far
     let mut old_size = pop.len();
@@ -99,14 +129,34 @@ fn main() {
     }
 
     pop.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
-    println!("Top chromosomes: ");
-    for i in 0..pop.len() {
+
+    // Convert to (points, fitness)
+    let mut out = Vec::new();
+    for ch in pop {
+        let fitness = ch.fitness();
+        out.push((ch.point, fitness));
+    }
+
+    return out;
+}
+
+/// Run GA 1 time to dump population info
+fn population_dump_run(cli: &CLIParameters, filename: &str) {
+    let mut population_file = File::create(filename).unwrap();
+
+    let result = ga_run(cli, move |i, p: &Vec<VectorChromosome>| {
+        dump_population_to_file(i, &mut population_file, p);
+    });
+
+    println!("Top chromosomes:");
+    for i in 0..result.len() {
         println!(
-            "#{}: [{:?}] -- {}",
+            "    #{} : ({}, {}) ==> {}",
             i + 1,
-            &pop[i].point,
-            fe.fitness(&pop[i])
-        )
+            result[i].0[0],
+            result[i].0[1],
+            result[i].1
+        );
     }
 }
 
@@ -155,4 +205,70 @@ fn optimize_population(mut population: Vec<VectorChromosome>, tol: f64) -> Vec<V
     }
 
     new_population
+}
+
+/// Run N time to find out average error from optimal points
+fn avg_error_evalualte(cli: &CLIParameters, optimal_points: &Vec<Vec<f64>>) -> Vec<f64> {
+    let (tx, rx) = channel();
+    let mut threads = Vec::new();
+
+    for _ in 0..cli.error_evaluate_trials {
+        let thr_tx = tx.clone();
+        let thr_cli = cli.clone();
+        let thr_pts = optimal_points.clone();
+
+        let thr = thread::spawn(move || {
+            let err = error_evaluate(thr_cli, thr_pts);
+            thr_tx.send(err).unwrap();
+        });
+
+        threads.push(thr);
+    }
+
+    let mut avg_err: Vec<f64> = Vec::new();
+    avg_err.resize(optimal_points.len(), 0.0);
+    for i in 0..cli.error_evaluate_trials {
+        let res = rx.recv().unwrap();
+        avg_err = avg_err.iter().zip(&res).map(|(x, y)| x + y).collect();
+        println!("Progress: {}/{}", i, cli.error_evaluate_trials)
+    }
+
+    for th in threads {
+        th.join().expect("Unknown error");
+    }
+
+    avg_err = avg_err
+        .iter()
+        .map(|x| x / cli.error_evaluate_trials as f64)
+        .collect();
+
+    return avg_err;
+}
+
+/// Run to calculate error from real maximum
+fn error_evaluate(cli: CLIParameters, optimal_points: Vec<Vec<f64>>) -> Vec<f64> {
+    let result = ga_run(&cli, |_, _| {});
+
+    let distance = |x: &Vec<f64>, y: &Vec<f64>| {
+        let mut s = 0.0;
+        for i in 0..x.len() {
+            s += (x[i] - y[i]).powi(2);
+        }
+        s.sqrt()
+    };
+
+    let mut out = Vec::new();
+    out.reserve(optimal_points.len());
+    for p in &optimal_points {
+        let mut min_dist = distance(p, &result.first().unwrap().0);
+        for i in 1..result.len() {
+            let dist = distance(p, &result[i].0);
+            if dist < min_dist {
+                min_dist = dist;
+            }
+        }
+        out.push(min_dist);
+    }
+
+    out
 }
