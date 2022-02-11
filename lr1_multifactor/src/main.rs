@@ -31,6 +31,9 @@ pub struct CLIParameters {
     /// Population size
     #[clap(long, default_value = "300")]
     pub population_size: usize,
+    /// Count of best ant chosen for final result
+    #[clap(long, default_value = "5")]
+    pub elite_count: usize,
 
     /// Population dump
     #[clap(long, default_value = "dump_pop.csv")]
@@ -46,7 +49,7 @@ pub struct CLIParameters {
     pub range: f64,
 
     /// Count of trials to calc avg error
-    #[clap(long, default_value = "20")]
+    #[clap(long, default_value = "100")]
     pub error_evaluate_trials: usize,
 }
 
@@ -70,7 +73,7 @@ fn main() {
     println!("Avg error for all points: {}", full_err);
     println!("Average errors: ");
     for i in 0..optimal_points.len() {
-        println!("    Point: [{:?}] -- {}", optimal_points[i], res[i]);
+        println!("    Point: {:?} -- {}", optimal_points[i], res[i]);
     }
 }
 
@@ -104,6 +107,8 @@ where
         population.push(factory.new_chromosome());
     }
 
+    let mut bests_pop = Vec::new();
+
     let mut processor = factory.new_processor();
     processor = processor.init_population(population);
     for i in 0..cli.iteration_count {
@@ -111,28 +116,29 @@ where
 
         let tmp_pop = processor.population();
         iter_func(i, tmp_pop);
+        bests_pop.extend(processor.top_chromosomes(cli.elite_count, fe.clone()));
 
         processor = processor.cross().mutate();
     }
 
     processor = processor.populate(); // Reduce population
 
-    let mut pop = processor.take_population();
+    let pop = processor.take_population();
     iter_func(cli.iteration_count, &pop);
 
     // Take only points placed at least cli.range far
-    let mut old_size = pop.len();
-    pop = optimize_population(pop, cli.range);
-    while old_size != pop.len() {
-        old_size = pop.len();
-        pop = optimize_population(pop, cli.range)
+    let mut old_size = bests_pop.len();
+    bests_pop = optimize_population(bests_pop, cli.range);
+    while old_size != bests_pop.len() {
+        old_size = bests_pop.len();
+        bests_pop = optimize_population(bests_pop, cli.range)
     }
 
-    pop.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
+    bests_pop.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
 
     // Convert to (points, fitness)
     let mut out = Vec::new();
-    for ch in pop {
+    for ch in bests_pop {
         let fitness = ch.fitness();
         out.push((ch.point, fitness));
     }

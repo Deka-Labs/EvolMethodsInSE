@@ -1,7 +1,7 @@
 pub mod multifactor;
 
 /// Represents chromosome in Genetic Algorithms with basic operators
-pub trait Chromosome<CrossType = Self> {
+pub trait Chromosome<CrossType = Self>: Clone {
     type CrossOutput;
 
     /// Returns one or more chromosome after crossingover()
@@ -25,6 +25,26 @@ pub trait GeneticProcessor<ChromosomeType: Chromosome> {
 
     fn population(&self) -> &Vec<ChromosomeType>;
     fn take_population(self) -> Vec<ChromosomeType>;
+
+    fn top_chromosomes<FE: FitnessEvaluater<ChromosomeType>>(
+        &self,
+        count: usize,
+        fe: FE,
+    ) -> Vec<ChromosomeType> {
+        let mut pop = self.population().clone();
+        assert!(0 < count);
+        assert!(count < pop.len());
+
+        pop.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
+
+        let mut out = Vec::with_capacity(count);
+
+        for i in 0..count {
+            out.push(pop[i].clone());
+        }
+
+        out
+    }
 }
 
 pub trait GeneticFactory<
