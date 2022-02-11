@@ -9,6 +9,7 @@ Z = cutted(:, 4);
 [XX, YY] = meshgrid(-6:0.1:6, -6:0.1:6);
 ZZ = 2500 - (XX.^2 + YY - 11).^2 - (XX + YY.^2 - 7).^2;
 
+subplot(1, 2, 1)
 scatter3(X, Y, Z, "x", "markeredgecolor", "red")
 hold on
 surf(XX, YY, ZZ)
@@ -16,3 +17,14 @@ xlabel("X")
 ylabel("Y")
 zlabel("Z")
 hold off
+
+subplot(1, 2, 2)
+scatter3(X, Y, Z, "x", "markeredgecolor", "red")
+hold on
+surf(XX, YY, ZZ)
+xlabel("X")
+ylabel("Y")
+zlabel("Z")
+hold off
+view(2)
+
