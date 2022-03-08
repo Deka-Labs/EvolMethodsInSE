@@ -1,3 +1,4 @@
+pub mod multicriteria;
 pub mod multifactor;
 pub mod vector;
 

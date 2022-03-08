@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "genetic_algorithm",
-    "lr1_multifactor"
+    "lr1_multifactor",
+    "lr2_multicriteria"
 ]
