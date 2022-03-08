@@ -1,11 +1,11 @@
 use crate::{vector::VectorChromosome, Chromosome, FitnessEvaluater};
 
-use super::VectorFitnessEvaluater;
+use super::MultifactorFitnessEvaluater;
 
 #[derive(Clone)]
 pub struct MultifactorChromosome<'ranges> {
     pub vector_chromosome: VectorChromosome<'ranges>,
-    pub(super) fitness: &'ranges VectorFitnessEvaluater,
+    pub(super) fitness: &'ranges MultifactorFitnessEvaluater,
 }
 
 impl MultifactorChromosome<'_> {

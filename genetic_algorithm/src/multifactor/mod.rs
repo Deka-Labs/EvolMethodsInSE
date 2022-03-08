@@ -4,14 +4,14 @@ mod factory;
 mod processor;
 
 pub use chromosome::MultifactorChromosome;
-pub use evaluater::VectorFitnessEvaluater;
+pub use evaluater::MultifactorFitnessEvaluater;
 pub use factory::VectorGeneticFactory;
 pub use processor::VectorGeneticProcessor;
 
 #[derive(Clone)]
 pub struct GeneticParameters {
     /// Fitness function
-    pub fitness_evaluater: VectorFitnessEvaluater,
+    pub fitness_evaluater: MultifactorFitnessEvaluater,
 
     /// Radius for searching
     pub search_radius: f64,
@@ -34,7 +34,7 @@ pub struct GeneticParameters {
 }
 
 impl GeneticParameters {
-    pub fn new(evaluater: VectorFitnessEvaluater) -> Self {
+    pub fn new(evaluater: MultifactorFitnessEvaluater) -> Self {
         Self {
             fitness_evaluater: evaluater,
             search_radius: 0.5,

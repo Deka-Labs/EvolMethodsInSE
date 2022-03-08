@@ -1,23 +1,23 @@
 use super::chromosome::MultifactorChromosome;
-use crate::FitnessEvaluater;
+use crate::{vector::VectorFitnessEvaluater, FitnessEvaluater};
 
 #[derive(Clone)]
-pub struct VectorFitnessEvaluater {
-    fitness_func: fn(&Vec<f64>) -> f64,
+pub struct MultifactorFitnessEvaluater {
+    vector_evaluater: VectorFitnessEvaluater,
 }
 
-impl VectorFitnessEvaluater {
-    pub fn new(fitness: fn(&Vec<f64>) -> f64) -> VectorFitnessEvaluater {
-        return VectorFitnessEvaluater {
-            fitness_func: fitness,
+impl MultifactorFitnessEvaluater {
+    pub fn new(fitness: fn(&Vec<f64>) -> f64) -> MultifactorFitnessEvaluater {
+        return MultifactorFitnessEvaluater {
+            vector_evaluater: VectorFitnessEvaluater::new(fitness),
         };
     }
 }
 
-impl FitnessEvaluater<MultifactorChromosome<'_>> for VectorFitnessEvaluater {
+impl FitnessEvaluater<MultifactorChromosome<'_>> for MultifactorFitnessEvaluater {
     type FitnessType = f64;
 
     fn fitness(&self, chromosome: &MultifactorChromosome<'_>) -> f64 {
-        return (self.fitness_func)(&chromosome.vector_chromosome.point);
+        return self.vector_evaluater.fitness(&chromosome.vector_chromosome);
     }
 }

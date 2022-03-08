@@ -3,7 +3,7 @@ use std::{fs::File, io::Write, sync::mpsc::channel, thread};
 use clap::Parser;
 use genetic_algorithm::{
     multifactor::{
-        GeneticParameters, MultifactorChromosome, VectorFitnessEvaluater, VectorGeneticFactory,
+        GeneticParameters, MultifactorChromosome, MultifactorFitnessEvaluater, VectorGeneticFactory,
     },
     FitnessEvaluater, GeneticFactory, GeneticProcessor,
 };
@@ -85,7 +85,7 @@ where
 {
     let fitness_func: fn(&Vec<f64>) -> f64 =
         |v| (2500.0 - (v[0].powi(2) + v[1] - 11.0).powi(2) - (v[0] + v[1].powi(2) - 7.0).powi(2));
-    let fe = VectorFitnessEvaluater::new(fitness_func);
+    let fe = MultifactorFitnessEvaluater::new(fitness_func);
 
     let genetic_parameters = GeneticParameters {
         fitness_evaluater: fe.clone(),
