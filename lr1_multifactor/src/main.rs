@@ -140,7 +140,7 @@ where
     let mut out = Vec::new();
     for ch in bests_pop {
         let fitness = ch.fitness();
-        out.push((ch.point, fitness));
+        out.push((ch.vector_chromosome.point, fitness));
     }
 
     return out;
@@ -176,8 +176,8 @@ fn dump_population_to_file(
             file,
             "{}, {}, {}, {}",
             iteration,
-            ch.point[0],
-            ch.point[1],
+            ch.vector_chromosome.point[0],
+            ch.vector_chromosome.point[1],
             ch.fitness()
         )
         .unwrap();

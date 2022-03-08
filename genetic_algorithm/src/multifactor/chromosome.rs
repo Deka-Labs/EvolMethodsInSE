@@ -1,26 +1,23 @@
-use crate::{Chromosome, FitnessEvaluater};
-use rand::{distributions::Uniform, prelude::*};
-use rand_distr::Normal;
+use crate::{vector::VectorChromosome, Chromosome, FitnessEvaluater};
 
 use super::VectorFitnessEvaluater;
 
 #[derive(Clone)]
 pub struct MultifactorChromosome<'ranges> {
-    pub point: Vec<f64>,
-    pub(super) rand: ThreadRng,
-
-    pub(super) min: &'ranges Vec<f64>,
-    pub(super) max: &'ranges Vec<f64>,
+    pub vector_chromosome: VectorChromosome<'ranges>,
     pub(super) fitness: &'ranges VectorFitnessEvaluater,
 }
 
 impl MultifactorChromosome<'_> {
     pub fn distance(&self, other: &Self) -> f64 {
-        assert_eq!(self.point.len(), other.point.len());
+        let self_point = &self.vector_chromosome.point;
+        let other_point = &other.vector_chromosome.point;
+
+        assert_eq!(self_point.len(), other_point.len());
 
         let mut sum = 0.0;
-        for i in 0..self.point.len() {
-            sum += (self.point[i] - other.point[i]).powi(2);
+        for i in 0..self_point.len() {
+            sum += (self_point[i] - other_point[i]).powi(2);
         }
 
         sum.sqrt()
@@ -34,55 +31,27 @@ impl MultifactorChromosome<'_> {
 impl<'ranges> Chromosome for MultifactorChromosome<'ranges> {
     type CrossOutput = Vec<MultifactorChromosome<'ranges>>;
 
-    fn cross(mut self, other: Self) -> Self::CrossOutput {
-        let distr = Uniform::new(0.0, 1.0);
-        let weight = distr.sample(&mut self.rand);
-
-        let mut out_chromosomes = Vec::new();
-        out_chromosomes.reserve(4);
-        // Childs insert
-        out_chromosomes.push(self.clone());
-        out_chromosomes.push(self.clone());
-
-        for i in 0..self.point.len() {
-            out_chromosomes[0].point[i] = weight * self.point[i] + (1.0 - weight) * other.point[i];
-            out_chromosomes[1].point[i] = weight * other.point[i] + (1.0 - weight) * self.point[i];
+    fn cross(self, other: Self) -> Self::CrossOutput {
+        let vec_result = self.vector_chromosome.cross(other.vector_chromosome);
+        let mut out_result = Vec::with_capacity(vec_result.len());
+        for v in vec_result {
+            let out_ch = MultifactorChromosome {
+                vector_chromosome: v,
+                fitness: self.fitness,
+            };
+            out_result.push(out_ch);
         }
 
-        // Parents insert
-        out_chromosomes.push(self);
-        out_chromosomes.push(other);
-
-        out_chromosomes
+        out_result
     }
 
     fn mutate(self) -> Self {
-        let mut mutated = self;
+        let fit_fun = self.fitness;
+        let vec_ch = self.vector_chromosome.mutate();
 
-        if mutated.rand.gen_bool(0.5) {
-            // Full random mutation
-            for i in 0..mutated.point.len() {
-                let min = mutated.min[i];
-                let max = mutated.max[i];
-
-                let distr = Uniform::new(min, max);
-
-                mutated.point[i] = distr.sample(&mut mutated.rand);
-            }
-        } else {
-            // Normal distribution mutation
-            for i in 0..mutated.point.len() {
-                let min = mutated.min[i];
-                let max = mutated.max[i];
-
-                let range = max - min;
-
-                let distr = Normal::new(0.0, range / 100.0 / 3.0).unwrap();
-
-                mutated.point[i] += distr.sample(&mut mutated.rand);
-            }
+        MultifactorChromosome {
+            vector_chromosome: vec_ch,
+            fitness: fit_fun,
         }
-
-        mutated
     }
 }

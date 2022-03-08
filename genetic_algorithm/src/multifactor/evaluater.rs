@@ -18,6 +18,6 @@ impl FitnessEvaluater<MultifactorChromosome<'_>> for VectorFitnessEvaluater {
     type FitnessType = f64;
 
     fn fitness(&self, chromosome: &MultifactorChromosome<'_>) -> f64 {
-        return (self.fitness_func)(&chromosome.point);
+        return (self.fitness_func)(&chromosome.vector_chromosome.point);
     }
 }

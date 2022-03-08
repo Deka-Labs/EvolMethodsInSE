@@ -1,4 +1,5 @@
 pub mod multifactor;
+pub mod vector;
 
 /// Represents chromosome in Genetic Algorithms with basic operators
 pub trait Chromosome<CrossType = Self>: Clone {

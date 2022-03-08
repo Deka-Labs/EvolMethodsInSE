@@ -1,7 +1,7 @@
 use rand::thread_rng;
 use rand_distr::{Distribution, Uniform};
 
-use crate::GeneticFactory;
+use crate::{vector::VectorChromosome, GeneticFactory};
 
 use super::{GeneticParameters, MultifactorChromosome, VectorGeneticProcessor};
 
@@ -28,10 +28,13 @@ impl<'fact> GeneticFactory<'fact, MultifactorChromosome<'fact>, VectorGeneticPro
         }
 
         MultifactorChromosome {
-            max: &self.p.max,
-            min: &self.p.min,
-            point: point,
-            rand: thread_rng(),
+            vector_chromosome: VectorChromosome {
+                max: &self.p.max,
+                min: &self.p.min,
+                point: point,
+                rand: thread_rng(),
+            },
+
             fitness: &self.p.fitness_evaluater,
         }
     }
