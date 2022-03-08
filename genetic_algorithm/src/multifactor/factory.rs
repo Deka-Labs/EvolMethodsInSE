@@ -3,7 +3,7 @@ use rand_distr::{Distribution, Uniform};
 
 use crate::GeneticFactory;
 
-use super::{GeneticParameters, VectorChromosome, VectorGeneticProcessor};
+use super::{GeneticParameters, MultifactorChromosome, VectorGeneticProcessor};
 
 pub struct VectorGeneticFactory {
     p: GeneticParameters,
@@ -15,10 +15,10 @@ impl VectorGeneticFactory {
     }
 }
 
-impl<'fact> GeneticFactory<'fact, VectorChromosome<'fact>, VectorGeneticProcessor<'fact>>
+impl<'fact> GeneticFactory<'fact, MultifactorChromosome<'fact>, VectorGeneticProcessor<'fact>>
     for VectorGeneticFactory
 {
-    fn new_chromosome(&'fact self) -> VectorChromosome<'fact> {
+    fn new_chromosome(&'fact self) -> MultifactorChromosome<'fact> {
         let mut point = Vec::new();
         point.reserve(self.p.min.len());
 
@@ -27,7 +27,7 @@ impl<'fact> GeneticFactory<'fact, VectorChromosome<'fact>, VectorGeneticProcesso
             point.push(distr.sample(&mut thread_rng()));
         }
 
-        VectorChromosome {
+        MultifactorChromosome {
             max: &self.p.max,
             min: &self.p.min,
             point: point,

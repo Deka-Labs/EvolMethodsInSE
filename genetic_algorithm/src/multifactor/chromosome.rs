@@ -5,7 +5,7 @@ use rand_distr::Normal;
 use super::VectorFitnessEvaluater;
 
 #[derive(Clone)]
-pub struct VectorChromosome<'ranges> {
+pub struct MultifactorChromosome<'ranges> {
     pub point: Vec<f64>,
     pub(super) rand: ThreadRng,
 
@@ -14,7 +14,7 @@ pub struct VectorChromosome<'ranges> {
     pub(super) fitness: &'ranges VectorFitnessEvaluater,
 }
 
-impl VectorChromosome<'_> {
+impl MultifactorChromosome<'_> {
     pub fn distance(&self, other: &Self) -> f64 {
         assert_eq!(self.point.len(), other.point.len());
 
@@ -31,8 +31,8 @@ impl VectorChromosome<'_> {
     }
 }
 
-impl<'ranges> Chromosome for VectorChromosome<'ranges> {
-    type CrossOutput = Vec<VectorChromosome<'ranges>>;
+impl<'ranges> Chromosome for MultifactorChromosome<'ranges> {
+    type CrossOutput = Vec<MultifactorChromosome<'ranges>>;
 
     fn cross(mut self, other: Self) -> Self::CrossOutput {
         let distr = Uniform::new(0.0, 1.0);

@@ -3,7 +3,7 @@ use std::{fs::File, io::Write, sync::mpsc::channel, thread};
 use clap::Parser;
 use genetic_algorithm::{
     multifactor::{
-        GeneticParameters, VectorChromosome, VectorFitnessEvaluater, VectorGeneticFactory,
+        GeneticParameters, MultifactorChromosome, VectorFitnessEvaluater, VectorGeneticFactory,
     },
     FitnessEvaluater, GeneticFactory, GeneticProcessor,
 };
@@ -81,7 +81,7 @@ fn main() {
 /// Returns vector of (point, fitness)
 fn ga_run<IterF>(cli: &CLIParameters, mut iter_func: IterF) -> Vec<(Vec<f64>, f64)>
 where
-    for<'inter> IterF: FnMut(usize, &Vec<VectorChromosome>),
+    for<'inter> IterF: FnMut(usize, &Vec<MultifactorChromosome>),
 {
     let fitness_func: fn(&Vec<f64>) -> f64 =
         |v| (2500.0 - (v[0].powi(2) + v[1] - 11.0).powi(2) - (v[0] + v[1].powi(2) - 7.0).powi(2));
@@ -150,7 +150,7 @@ where
 fn population_dump_run(cli: &CLIParameters, filename: &str) {
     let mut population_file = File::create(filename).unwrap();
 
-    let result = ga_run(cli, move |i, p: &Vec<VectorChromosome>| {
+    let result = ga_run(cli, move |i, p: &Vec<MultifactorChromosome>| {
         dump_population_to_file(i, &mut population_file, p);
     });
 
@@ -166,7 +166,11 @@ fn population_dump_run(cli: &CLIParameters, filename: &str) {
     }
 }
 
-fn dump_population_to_file(iteration: usize, file: &mut File, population: &Vec<VectorChromosome>) {
+fn dump_population_to_file(
+    iteration: usize,
+    file: &mut File,
+    population: &Vec<MultifactorChromosome>,
+) {
     for ch in population {
         writeln!(
             file,
@@ -182,7 +186,10 @@ fn dump_population_to_file(iteration: usize, file: &mut File, population: &Vec<V
 
 /// Rebuild population where only 1 chromosome placed in specified range
 /// WARNING. If the range around 2 point intesects then the output can have 2 points placed near
-fn optimize_population(mut population: Vec<VectorChromosome>, tol: f64) -> Vec<VectorChromosome> {
+fn optimize_population(
+    mut population: Vec<MultifactorChromosome>,
+    tol: f64,
+) -> Vec<MultifactorChromosome> {
     let mut origin_population = Vec::new();
     origin_population.push(population.swap_remove(0));
     let mut new_population = origin_population.clone();

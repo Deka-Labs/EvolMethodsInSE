@@ -1,4 +1,4 @@
-use super::chromosome::VectorChromosome;
+use super::chromosome::MultifactorChromosome;
 use crate::FitnessEvaluater;
 
 #[derive(Clone)]
@@ -14,8 +14,10 @@ impl VectorFitnessEvaluater {
     }
 }
 
-impl FitnessEvaluater<VectorChromosome<'_>> for VectorFitnessEvaluater {
-    fn fitness(&self, chromosome: &VectorChromosome<'_>) -> f64 {
+impl FitnessEvaluater<MultifactorChromosome<'_>> for VectorFitnessEvaluater {
+    type FitnessType = f64;
+
+    fn fitness(&self, chromosome: &MultifactorChromosome<'_>) -> f64 {
         return (self.fitness_func)(&chromosome.point);
     }
 }

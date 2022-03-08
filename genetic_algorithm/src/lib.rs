@@ -11,7 +11,8 @@ pub trait Chromosome<CrossType = Self>: Clone {
 }
 
 pub trait FitnessEvaluater<C: Chromosome> {
-    fn fitness(&self, chromosome: &C) -> f64;
+    type FitnessType;
+    fn fitness(&self, chromosome: &C) -> Self::FitnessType;
 }
 
 /// It sets 4 main genetic operators on population of chromosomes
@@ -26,7 +27,7 @@ pub trait GeneticProcessor<ChromosomeType: Chromosome> {
     fn population(&self) -> &Vec<ChromosomeType>;
     fn take_population(self) -> Vec<ChromosomeType>;
 
-    fn top_chromosomes<FE: FitnessEvaluater<ChromosomeType>>(
+    fn top_chromosomes<FE: FitnessEvaluater<ChromosomeType, FitnessType = f64>>(
         &self,
         count: usize,
         fe: FE,

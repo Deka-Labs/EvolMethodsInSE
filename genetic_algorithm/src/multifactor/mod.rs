@@ -3,7 +3,7 @@ mod evaluater;
 mod factory;
 mod processor;
 
-pub use chromosome::VectorChromosome;
+pub use chromosome::MultifactorChromosome;
 pub use evaluater::VectorFitnessEvaluater;
 pub use factory::VectorGeneticFactory;
 pub use processor::VectorGeneticProcessor;

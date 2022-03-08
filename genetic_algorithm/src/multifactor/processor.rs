@@ -3,10 +3,10 @@ use rand_distr::WeightedAliasIndex;
 
 use crate::{Chromosome, FitnessEvaluater, GeneticProcessor};
 
-use super::{chromosome::VectorChromosome, GeneticParameters};
+use super::{chromosome::MultifactorChromosome, GeneticParameters};
 
 pub struct VectorGeneticProcessor<'pop> {
-    population: Option<Vec<VectorChromosome<'pop>>>,
+    population: Option<Vec<MultifactorChromosome<'pop>>>,
     population_size: usize,
     rand: ThreadRng,
 
@@ -24,8 +24,8 @@ impl VectorGeneticProcessor<'_> {
     }
 }
 
-impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'pop> {
-    fn init_population(self, start_population: Vec<VectorChromosome<'pop>>) -> Self {
+impl<'pop> GeneticProcessor<MultifactorChromosome<'pop>> for VectorGeneticProcessor<'pop> {
+    fn init_population(self, start_population: Vec<MultifactorChromosome<'pop>>) -> Self {
         let size = start_population.len();
         Self {
             population: Some(start_population),
@@ -145,7 +145,7 @@ impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'
         }
     }
 
-    fn population(&self) -> &Vec<VectorChromosome<'pop>> {
+    fn population(&self) -> &Vec<MultifactorChromosome<'pop>> {
         if let Some(pop) = &self.population {
             pop
         } else {
@@ -153,7 +153,7 @@ impl<'pop> GeneticProcessor<VectorChromosome<'pop>> for VectorGeneticProcessor<'
         }
     }
 
-    fn take_population(self) -> Vec<VectorChromosome<'pop>> {
+    fn take_population(self) -> Vec<MultifactorChromosome<'pop>> {
         self.population.unwrap()
     }
 }
