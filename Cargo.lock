@@ -141,6 +141,7 @@ dependencies = [
 name = "lr2_multicriteria"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "genetic_algorithm",
 ]
 

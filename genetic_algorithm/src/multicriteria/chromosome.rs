@@ -27,6 +27,10 @@ impl MulticriteriaChromosome<'_> {
     pub fn fitness(&self, id: usize) -> f64 {
         self.fitness_evaluaters[id].fitness(&self.vector_chromosome)
     }
+
+    pub fn criterions_count(&self) -> usize {
+        self.fitness_evaluaters.len()
+    }
 }
 
 impl<'ranges> Chromosome for MulticriteriaChromosome<'ranges> {

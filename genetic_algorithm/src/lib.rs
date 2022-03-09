@@ -27,7 +27,7 @@ pub trait GeneticProcessor<ChromosomeType: Chromosome> {
     fn mutate(self) -> Self;
 
     fn population(&self) -> &Vec<ChromosomeType>;
-    fn take_population(self) -> Vec<ChromosomeType>;
+    fn finalyze(self) -> Vec<ChromosomeType>;
 
     fn top_chromosomes<FE: FitnessEvaluater<ChromosomeType, FitnessType = f64>>(
         &self,

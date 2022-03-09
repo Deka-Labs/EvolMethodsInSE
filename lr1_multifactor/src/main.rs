@@ -123,7 +123,7 @@ where
 
     processor = processor.populate(); // Reduce population
 
-    let pop = processor.take_population();
+    let pop = processor.finalyze();
     iter_func(cli.iteration_count, &pop);
 
     // Take only points placed at least cli.range far

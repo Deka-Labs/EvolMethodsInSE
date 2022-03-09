@@ -153,7 +153,7 @@ impl<'pop> GeneticProcessor<MultifactorChromosome<'pop>> for VectorGeneticProces
         }
     }
 
-    fn take_population(self) -> Vec<MultifactorChromosome<'pop>> {
+    fn finalyze(self) -> Vec<MultifactorChromosome<'pop>> {
         self.population.unwrap()
     }
 }

@@ -6,7 +6,7 @@ X = cutted(:, 2);
 Y = cutted(:, 3);
 Z = cutted(:, 4);
 
-[XX, YY] = meshgrid(-6:0.1:6, -6:0.1:6);
+[XX, YY] = meshgrid(-4:0.1:4, -4:0.1:4);
 ZZ = 2500 - (XX.^2 + YY - 11).^2 - (XX + YY.^2 - 7).^2;
 
 subplot(1, 2, 1)

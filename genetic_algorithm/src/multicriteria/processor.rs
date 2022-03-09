@@ -179,7 +179,34 @@ impl<'pop> GeneticProcessor<MulticriteriaChromosome<'pop>> for MulticriteriaGene
         }
     }
 
-    fn take_population(self) -> Vec<MulticriteriaChromosome<'pop>> {
-        self.population.unwrap()
+    fn finalyze(self) -> Vec<MulticriteriaChromosome<'pop>> {
+        let mut p = self.population.unwrap();
+        let mut out = Vec::with_capacity(p.len() / 2);
+
+        while !p.is_empty() {
+            let first_ch = p.swap_remove(0);
+
+            for ch in &p {
+                let mut is_all_worse = true;
+                for crit_nmb in 0..first_ch.criterions_count() {
+                    if self.parameters.is_maximization {
+                        is_all_worse =
+                            is_all_worse && (first_ch.fitness(crit_nmb) < ch.fitness(crit_nmb));
+                    } else {
+                        is_all_worse =
+                            is_all_worse && (ch.fitness(crit_nmb) < first_ch.fitness(crit_nmb));
+                    }
+                }
+                if is_all_worse {
+                    // then we don't need this value
+                    break;
+                } else {
+                    out.push(first_ch);
+                    break;
+                }
+            }
+        }
+
+        out
     }
 }
