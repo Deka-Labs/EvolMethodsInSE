@@ -1,4 +1,4 @@
-pos = 50;
+pos = 20;
 popSize = 300;
 
 cutted = dump_pop((pos.*popSize+1):(pos+1).*popSize, :);
@@ -21,6 +21,7 @@ xlabel("F1")
 ylabel("F2")
 zlabel("F3")
 title("Full 3D view")
+shading interp
 hold off
 
 subplot(1, 4, 2)
@@ -32,6 +33,7 @@ xlabel("X")
 ylabel("Y")
 zlabel("F1")
 title("Criterion 1")
+shading interp
 hold off
 
 subplot(1, 4, 3)
@@ -43,6 +45,7 @@ xlabel("X")
 ylabel("Y")
 zlabel("F2")
 title("Criterion 2")
+shading interp
 hold off
 
 subplot(1, 4, 4)
@@ -54,5 +57,6 @@ xlabel("X")
 ylabel("Y")
 zlabel("F3")
 title("Criterion 3")
+shading interp
 hold off
 
