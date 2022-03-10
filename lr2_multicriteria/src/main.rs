@@ -111,8 +111,9 @@ where
 
     processor = processor.populate(); // Reduce population
 
+    let raw_population = processor.population();
+    iter_func(cli.iteration_count, &raw_population);
     let pop = processor.finalyze();
-    iter_func(cli.iteration_count, &pop);
 
     let mut out = Vec::with_capacity(pop.len());
     for ch in pop {
