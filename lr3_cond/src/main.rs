@@ -1,11 +1,11 @@
-use std::{fs::File, io::Write, sync::mpsc::channel, thread};
+use std::{cell::RefCell, fs::File, io::Write, sync::mpsc::channel, thread};
 
 use clap::Parser;
 use genetic_algorithm::{
     conditional::{
         GeneticParameters, MultifactorChromosome, MultifactorFitnessEvaluater, VectorGeneticFactory,
     },
-    FitnessEvaluater, GeneticFactory, GeneticProcessor,
+    GeneticFactory, GeneticProcessor,
 };
 
 #[derive(Parser, Clone)]
@@ -15,14 +15,14 @@ pub struct CLIParameters {
     #[clap(long, default_value = "0.01")]
     pub search_radius: f64,
     /// Radius that allows two chromosomes to cross
-    #[clap(long, default_value = "0.099")]
+    #[clap(long, default_value = "0.005")]
     pub cross_allow_radius: f64,
     /// Max try count for search chromosome in cross_allow_radius
     #[clap(long, default_value = "5")]
     pub max_cross_choices: usize,
 
     /// Mutation chance
-    #[clap(long, default_value = "0.2")]
+    #[clap(long, default_value = "0.3")]
     pub mutation_chance: f64,
 
     /// Iteration count
@@ -45,11 +45,11 @@ pub struct CLIParameters {
     pub rang_value: f64,
 
     /// A distance tolerance for displaying best in population
-    #[clap(long, default_value = "3")]
+    #[clap(long, default_value = "0.7")]
     pub range: f64,
 
     /// Count of trials to calc avg error
-    #[clap(long, default_value = "100")]
+    #[clap(long, default_value = "20")]
     pub error_evaluate_trials: usize,
 
     /// Weight for h(x) condition
@@ -60,9 +60,13 @@ pub struct CLIParameters {
     #[clap(long, default_value = "1")]
     pub weight_x: f64,
 
-    /// required accuracy for h(x)
+    /// required accuracy for h(x) in 1 step
     #[clap(long, default_value = "0.01")]
-    pub eps: f64,
+    pub start_eps: f64,
+
+    /// required accuracy for h(x) in last step
+    #[clap(long, default_value = "0.0001")]
+    pub end_eps: f64,
 }
 
 fn main() {
@@ -90,6 +94,8 @@ fn ga_run<IterF>(cli: &CLIParameters, mut iter_func: IterF) -> Vec<(Vec<f64>, f6
 where
     for<'inter> IterF: FnMut(usize, &Vec<MultifactorChromosome>),
 {
+    let cell_eps = RefCell::new(cli.start_eps);
+
     let fe = MultifactorFitnessEvaluater {
         fitness_func: |v| v[0].powi(2) + (v[1] - 1.0).powi(2),
         restrictions: vec![
@@ -112,7 +118,7 @@ where
             },
         ],
         weights: vec![cli.weight_h, cli.weight_x, cli.weight_x],
-        eps: cli.eps,
+        eps: cell_eps.clone(),
     };
 
     let genetic_parameters = GeneticParameters {
@@ -147,6 +153,8 @@ where
         bests_pop.extend(processor.top_chromosomes(cli.elite_count, fe.clone()));
 
         processor = processor.cross().mutate();
+
+        *cell_eps.borrow_mut() += (cli.end_eps - cli.start_eps) / cli.iteration_count as f64;
     }
 
     processor = processor.populate(); // Reduce population
@@ -156,13 +164,13 @@ where
 
     // Take only points placed at least cli.range far
     let mut old_size = bests_pop.len();
-    bests_pop = optimize_population(bests_pop, cli.range);
+    bests_pop = optimize_population(bests_pop, cli.range, fe.clone());
     while old_size != bests_pop.len() {
         old_size = bests_pop.len();
-        bests_pop = optimize_population(bests_pop, cli.range)
+        bests_pop = optimize_population(bests_pop, cli.range, fe.clone())
     }
 
-    bests_pop.sort_unstable_by(|l, r| fe.fitness(l).partial_cmp(&fe.fitness(r)).unwrap());
+    bests_pop.sort_unstable_by(|l, r| fe.penalty(l).partial_cmp(&fe.penalty(r)).unwrap());
 
     // Convert to (points, fitness, real_fitness)
     let fitness_func: fn(&Vec<f64>) -> f64 = |v| v[0].powi(2) + (v[1] - 1.0).powi(2);
@@ -202,6 +210,7 @@ fn dump_population_to_file(
     file: &mut File,
     population: &Vec<MultifactorChromosome>,
 ) {
+    let fitness_func: fn(&Vec<f64>) -> f64 = |v| v[0].powi(2) + (v[1] - 1.0).powi(2);
     for ch in population {
         writeln!(
             file,
@@ -209,7 +218,7 @@ fn dump_population_to_file(
             iteration,
             ch.vector_chromosome.point[0],
             ch.vector_chromosome.point[1],
-            ch.fitness()
+            fitness_func(&ch.vector_chromosome.point),
         )
         .unwrap();
     }
@@ -220,6 +229,7 @@ fn dump_population_to_file(
 fn optimize_population(
     mut population: Vec<MultifactorChromosome>,
     tol: f64,
+    fe: MultifactorFitnessEvaluater,
 ) -> Vec<MultifactorChromosome> {
     let mut origin_population = Vec::new();
     origin_population.push(population.swap_remove(0));
@@ -233,8 +243,8 @@ fn optimize_population(
         let mut breaked = false;
         for i in 0..new_population.len() {
             if processed_ch.distance(&origin_population[i]) < tol {
-                // If yes, check if it is max in range
-                if processed_ch.fitness() > new_population[i].fitness() {
+                // If yes, check if it is min in range
+                if fe.penalty(&processed_ch) < fe.penalty(&new_population[i]) {
                     new_population[i] = processed_ch.clone()
                 }
                 breaked = true;
