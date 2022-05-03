@@ -1,3 +1,4 @@
+pub mod conditional;
 pub mod multicriteria;
 pub mod multifactor;
 pub mod vector;
@@ -38,7 +39,7 @@ pub trait GeneticProcessor<ChromosomeType: Chromosome> {
         assert!(0 < count);
         assert!(count < pop.len());
 
-        pop.sort_unstable_by(|l, r| fe.fitness(r).partial_cmp(&fe.fitness(l)).unwrap());
+        pop.sort_unstable_by(|l, r| fe.fitness(l).partial_cmp(&fe.fitness(r)).unwrap());
 
         let mut out = Vec::with_capacity(count);
 

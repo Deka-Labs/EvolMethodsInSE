@@ -146,6 +146,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "lr3_cond"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "genetic_algorithm",
+]
+
+[[package]]
 name = "memchr"
 version = "2.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -2,5 +2,6 @@
 members = [
     "genetic_algorithm",
     "lr1_multifactor",
-    "lr2_multicriteria"
+    "lr2_multicriteria",
+    "lr3_cond",
 ]
