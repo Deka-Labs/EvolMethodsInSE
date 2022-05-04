@@ -1,4 +1,15 @@
-use std::{cell::RefCell, fs::File, io::Write, sync::mpsc::channel, thread};
+use std::{
+    cell::RefCell,
+    fs::File,
+    io::Write,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        mpsc::{self, channel},
+        Arc,
+    },
+    thread,
+    time::Instant,
+};
 
 use clap::Parser;
 use genetic_algorithm::{
@@ -65,8 +76,28 @@ pub struct CLIParameters {
     pub start_eps: f64,
 
     /// required accuracy for h(x) in last step
-    #[clap(long, default_value = "0.0001")]
+    #[clap(long, default_value = "0.005")]
     pub end_eps: f64,
+
+    /// Count of trials to calc avg errors, time, etc
+    #[clap(long, default_value = "50")]
+    pub trials: usize,
+
+    /// Thread count to calc errors
+    #[clap(long, default_value = "16")]
+    pub thread_count: usize,
+
+    /// File for dump errors from population
+    #[clap(long, default_value = "dump_pop_err_pop.csv")]
+    pub errors_dump_pop_from_pop: String,
+
+    /// File for dump errors from population
+    #[clap(long, default_value = "dump_pop_err_mutation.csv")]
+    pub errors_dump_pop_from_mutation: String,
+
+    /// Disable test
+    #[clap(long)]
+    pub disable_tests: bool,
 }
 
 fn main() {
@@ -86,6 +117,47 @@ fn main() {
     for i in 0..optimal_points.len() {
         println!("    Point: {:?} -- {}", optimal_points[i], res[i]);
     }
+
+    if cli.disable_tests {
+        return;
+    }
+
+    println!("Evaluating time and error for different population sizes...");
+    let pop_min = 50;
+    let pop_max = 500;
+    let pop_step = 25;
+    let mut parameters = Vec::with_capacity((pop_max - pop_min) / pop_step);
+    for pop_size in (pop_min..=pop_max).step_by(pop_step) {
+        let mut copy_cli = cli.clone();
+        copy_cli.population_size = pop_size;
+        parameters.push(copy_cli);
+    }
+    evaluate_errors_and_time(
+        parameters,
+        cli.thread_count,
+        cli.trials,
+        &cli.errors_dump_pop_from_pop,
+    );
+    println!("Ready!");
+
+    println!("Evaluating time and error for different mutation chances...");
+    let mutation_min = 0;
+    let mutation_max = 100;
+    let mutation_step = 5;
+    let mut parameters = Vec::with_capacity((mutation_max - mutation_min) / mutation_step);
+    for mutation_ch in (mutation_min..=mutation_max).step_by(mutation_step) {
+        let mut copy_cli = cli.clone();
+        copy_cli.mutation_chance = (mutation_ch as f64) / 100.0;
+        parameters.push(copy_cli);
+    }
+    evaluate_errors_and_time(
+        parameters,
+        cli.thread_count,
+        cli.trials,
+        &cli.errors_dump_pop_from_mutation,
+    );
+
+    println!("Ready!");
 }
 
 /// Run genetic algorithm
@@ -170,7 +242,15 @@ where
         bests_pop = optimize_population(bests_pop, cli.range, fe.clone())
     }
 
-    bests_pop.sort_unstable_by(|l, r| fe.penalty(l).partial_cmp(&fe.penalty(r)).unwrap());
+    bests_pop.sort_unstable_by(|l, r| {
+        let penalty_diff = fe.penalty(l) - fe.penalty(r);
+
+        if penalty_diff.abs() < 0.00000000000001 {
+            return fe.real_fitness(l).partial_cmp(&fe.real_fitness(r)).unwrap();
+        }
+
+        fe.penalty(l).partial_cmp(&fe.penalty(r)).unwrap()
+    });
 
     // Convert to (points, fitness, real_fitness)
     let fitness_func: fn(&Vec<f64>) -> f64 = |v| v[0].powi(2) + (v[1] - 1.0).powi(2);
@@ -244,7 +324,15 @@ fn optimize_population(
         for i in 0..new_population.len() {
             if processed_ch.distance(&origin_population[i]) < tol {
                 // If yes, check if it is min in range
-                if fe.penalty(&processed_ch) < fe.penalty(&new_population[i]) {
+
+                let mut is_min = fe.penalty(&processed_ch) < fe.penalty(&new_population[i]);
+
+                let penalty_diff = fe.penalty(&processed_ch) - fe.penalty(&new_population[i]);
+                if penalty_diff.abs() < 0.00000000000001 {
+                    is_min = fe.real_fitness(&processed_ch) < fe.real_fitness(&new_population[i]);
+                }
+
+                if is_min {
                     new_population[i] = processed_ch.clone()
                 }
                 breaked = true;
@@ -325,4 +413,123 @@ fn error_evaluate(cli: CLIParameters, optimal_points: Vec<Vec<f64>>) -> Vec<f64>
     }
 
     out
+}
+
+fn evaluate_errors_and_time(
+    parameters: Vec<CLIParameters>,
+    thread_count: usize,
+    trials_count: usize,
+    file_path: &str,
+) -> Vec<(f64, f64)> {
+    let position = Arc::new(AtomicUsize::new(0));
+    let arc_parameters = Arc::new(parameters);
+
+    let (sender, recv) = mpsc::channel();
+
+    // Start threads
+    let mut threads = Vec::with_capacity(thread_count);
+    for _ in 0..thread_count {
+        let thr_pos = Arc::clone(&position);
+        let thr_parameters = Arc::clone(&arc_parameters);
+        let thr_sender = sender.clone();
+
+        let thr = thread::spawn(move || {
+            let mut id = thr_pos.fetch_add(1, Ordering::SeqCst);
+
+            while id < (trials_count * thr_parameters.len()) {
+                let p = &thr_parameters[id % thr_parameters.len()];
+                let (time, error) = evaluate_errors_and_time_single(p);
+
+                thr_sender
+                    .send((id % thr_parameters.len(), time, error))
+                    .unwrap();
+
+                id = thr_pos.fetch_add(1, Ordering::SeqCst);
+            }
+        });
+
+        threads.push(thr);
+    }
+    // drop original sender
+    drop(sender);
+
+    // getting messages
+    let mut out = vec![(0.0, 0.0); arc_parameters.len()];
+    let mut trials_count_arr = vec![0 as usize; arc_parameters.len()];
+
+    for (id, time, error) in recv {
+        let (old_time, old_error) = out[id];
+        out[id] = (old_time + time, old_error + error);
+        trials_count_arr[id] = trials_count_arr[id] + 1;
+
+        let abs_progress: usize = trials_count_arr.clone().iter().sum();
+        println!(
+            "Progress: {:.2}%...",
+            abs_progress as f64 / (trials_count * arc_parameters.len()) as f64 * 100.0
+        )
+    }
+
+    let l = arc_parameters.len() as f64;
+    for (t, e) in &mut out {
+        *t = *t / l;
+        *e = *e / l;
+    }
+
+    let mut out_file = File::create(file_path).unwrap();
+
+    for i in 0..out.len() {
+        writeln!(&mut out_file, "{}, {}, {}", i, out[i].0, out[i].1).unwrap();
+    }
+
+    return out;
+}
+
+fn evaluate_errors_and_time_single(parameters: &CLIParameters) -> (f64, f64) {
+    let start_time = Instant::now();
+
+    // Run algorithm
+    let result = ga_run(&parameters, |_, _| {});
+    let time = start_time.elapsed().as_secs_f64();
+
+    // Find errors
+    let best_points = vec![vec![0.70711, 0.5], vec![-0.70711, 0.5]];
+    let mut best_error = vec![0.0; best_points.len()];
+
+    // Distance between points function
+    let distance: fn(l: &Vec<f64>, r: &Vec<f64>) -> f64 = |l, r| {
+        assert_eq!(l.len(), r.len());
+
+        let mut sum = 0.0;
+        for i in 0..l.len() {
+            sum += (l[i] - r[i]).powi(2);
+        }
+
+        sum.sqrt()
+    };
+
+    // Init start errors
+    let (first_point, _, _) = result.first().unwrap();
+    for i in 0..best_points.len() {
+        best_error[i] = distance(&first_point, &best_points[i]);
+    }
+
+    // Calculate errors
+    for (point, _, _) in result {
+        for i in 0..best_points.len() {
+            let dist = distance(&point, &best_points[i]);
+
+            if dist < best_error[i] {
+                best_error[i] = dist;
+            }
+        }
+    }
+
+    // Average errors
+    let mut sum = 0.0;
+    for v in &best_error {
+        sum += v;
+    }
+    sum /= best_error.len() as f64;
+
+    return (time, sum);
 }

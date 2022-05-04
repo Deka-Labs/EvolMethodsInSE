@@ -1,4 +1,4 @@
-pos = 20;
+pos = 100;
 popSize = 300;
 
 cutted = dump_pop((pos.*popSize+1):(pos+1).*popSize, :);
@@ -15,10 +15,10 @@ subplot(1, 2, 1)
 scatter3(X, Y, Z, "x", "markeredgecolor", "red")
 hold on
 surf(XX, YY, ZZ)
-surf(XX, YY, CC)
 xlabel("X")
 ylabel("Y")
 zlabel("Z")
+view(135, 30)
 hold off
 
 subplot(1, 2, 2)
